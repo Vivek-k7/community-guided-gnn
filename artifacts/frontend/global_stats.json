@@ -1,0 +1,8 @@
+{
+  "num_nodes": 37700,
+  "num_edges": 289003,
+  "num_communities": 37,
+  "modularity": 0.4540286770774738,
+  "density": 0.0004066878203117068,
+  "transitivity": 0.012357188884259466
+}
