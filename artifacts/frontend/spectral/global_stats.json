@@ -1,0 +1,8 @@
+{
+  "num_nodes": 37700,
+  "num_edges": 289003,
+  "num_communities": 37,
+  "modularity": 0.2677014157138425,
+  "density": 0.0004066878203117068,
+  "algorithm": "spectral"
+}

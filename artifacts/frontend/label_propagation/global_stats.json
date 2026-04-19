@@ -1,0 +1,8 @@
+{
+  "num_nodes": 37700,
+  "num_edges": 289003,
+  "num_communities": 348,
+  "modularity": 0.00332843412992269,
+  "density": 0.0004066878203117068,
+  "algorithm": "label_propagation"
+}
