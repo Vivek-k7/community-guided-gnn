@@ -2,7 +2,7 @@
   "num_nodes": 37700,
   "num_edges": 289003,
   "num_communities": 37,
-  "modularity": 0.31891855460729684,
+  "modularity": 0.2567820386146479,
   "density": 0.0004066878203117068,
   "algorithm": "gnn"
 }

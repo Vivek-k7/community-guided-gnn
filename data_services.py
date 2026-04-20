@@ -24,8 +24,10 @@ ALGO_DISPLAY = {
     "label_propagation": "Label Propagation",
     "spectral": "Spectral Clustering",
     "kmeans": "K-Means (Features)",
-    "gnn": "GraphSAGE + K-Means",
+    "gnn": "VGAE + K-Means",
 }
+
+VGAE_EMBEDDINGS_PATH = Path("artifacts/vgae_embeddings.npy")
 
 
 def algo_dir(algo: str) -> Path:
@@ -221,33 +223,18 @@ def _build_kmeans(
 def _build_gnn(
     graph: nx.Graph,
     target: pd.DataFrame,
-    features_matrix: sp.csr_matrix,
     n_nodes: int,
     n_clusters: int,
 ) -> None:
-    # GraphSAGE-style: reduce features → 2-hop mean aggregation → K-Means
-    n_comp = min(64, features_matrix.shape[1] - 1)
-    svd = TruncatedSVD(n_components=n_comp, random_state=42, n_iter=7)
-    feat_reduced = svd.fit_transform(features_matrix)  # (n_nodes, 64) dense
-
-    # Row-normalized adjacency with self-loops for mean aggregation
-    rows_e = list(range(n_nodes))
-    cols_e = list(range(n_nodes))
-    for u, v in graph.edges():
-        rows_e.extend([u, v])
-        cols_e.extend([v, u])
-    adj = sp.csr_matrix(
-        (np.ones(len(rows_e)), (rows_e, cols_e)), shape=(n_nodes, n_nodes)
-    )
-    deg = np.array(adj.sum(axis=1)).flatten()
-    D_inv = sp.diags(1.0 / deg)
-    A_norm = D_inv @ adj
-
-    h = A_norm @ feat_reduced   # Layer 1: sparse @ dense = dense
-    h = A_norm @ h              # Layer 2
-
+    # Load pre-trained VGAE embeddings (37700 × 64) and cluster with K-Means
+    if not VGAE_EMBEDDINGS_PATH.exists():
+        raise FileNotFoundError(
+            f"VGAE embeddings not found at {VGAE_EMBEDDINGS_PATH}. "
+            "Run gnn_vgae.ipynb first to generate them."
+        )
+    embeddings = np.load(str(VGAE_EMBEDDINGS_PATH))  # (n_nodes, 64)
     km = KMeans(n_clusters=n_clusters, n_init=5, random_state=42)
-    labels = _remap(km.fit_predict(h))
+    labels = _remap(km.fit_predict(embeddings))
     _save_artifacts("gnn", labels, graph, target)
 
 
@@ -280,8 +267,7 @@ def build_algorithm(algo: str) -> None:
         features_matrix = load_features_matrix(n_nodes)
         _build_kmeans(graph, target, features_matrix, n_nodes, n_clusters)
     elif algo == "gnn":
-        features_matrix = load_features_matrix(n_nodes)
-        _build_gnn(graph, target, features_matrix, n_nodes, n_clusters)
+        _build_gnn(graph, target, n_nodes, n_clusters)
 
 
 def load_algorithm_data(algo: str) -> dict:
@@ -333,6 +319,28 @@ def lookup_user(query: str, node_df: pd.DataFrame) -> Optional[pd.Series]:
         return None if rows.empty else rows.iloc[0]
     rows = node_df[node_df["name"].str.lower() == query.lower()]
     return None if rows.empty else rows.iloc[0]
+
+
+def toy_similar_users(
+    user_row: pd.Series, node_df: pd.DataFrame, top_k: int
+) -> pd.DataFrame:
+    comm_id = int(user_row["community_id"])
+    uid = int(user_row["id"])
+    udeg = int(user_row["degree"])
+    candidates = node_df[
+        (node_df["community_id"] == comm_id) & (node_df["id"] != uid)
+    ].copy()
+    if candidates.empty:
+        return pd.DataFrame(columns=["id", "name", "degree", "similarity_score"])
+    denom = np.maximum(candidates["degree"].to_numpy(), udeg) + 1.0
+    candidates["similarity_score"] = 1.0 - (
+        np.abs(candidates["degree"].to_numpy() - udeg) / denom
+    )
+    return (
+        candidates.sort_values("similarity_score", ascending=False)
+        .head(top_k)[["id", "name", "degree", "similarity_score"]]
+        .reset_index(drop=True)
+    )
 
 
 def feature_similar_users(
@@ -476,7 +484,7 @@ def build_pyvis_graph(
 
         display_name = name or f"ID {nid}"
         color = "#FFD700" if nid == highlight_id else _PALETTE[community_id % len(_PALETTE)]
-        size = max(8, min(30, 6 + degree // 4))
+        size = max(5, min(16, 4 + degree // 8))
         label = name if name else str(nid)
 
         has_github = bool(name)
