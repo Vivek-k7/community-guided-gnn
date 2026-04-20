@@ -357,29 +357,6 @@ def feature_similar_users(
         .reset_index(drop=True)
     )
 
-
-def toy_similar_users(
-    user_row: pd.Series, node_df: pd.DataFrame, top_k: int
-) -> pd.DataFrame:
-    comm_id = int(user_row["community_id"])
-    uid = int(user_row["id"])
-    udeg = int(user_row["degree"])
-    candidates = node_df[
-        (node_df["community_id"] == comm_id) & (node_df["id"] != uid)
-    ].copy()
-    if candidates.empty:
-        return pd.DataFrame(columns=["id", "name", "degree", "similarity_score"])
-    denom = np.maximum(candidates["degree"].to_numpy(), udeg) + 1.0
-    candidates["similarity_score"] = 1.0 - (
-        np.abs(candidates["degree"].to_numpy() - udeg) / denom
-    )
-    return (
-        candidates.sort_values("similarity_score", ascending=False)
-        .head(top_k)[["id", "name", "degree", "similarity_score"]]
-        .reset_index(drop=True)
-    )
-
-
 def community_subgraph(
     community_id: int,
     node_df: pd.DataFrame,

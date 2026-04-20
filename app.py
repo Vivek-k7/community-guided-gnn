@@ -16,7 +16,6 @@ from data_services import (
     load_features_matrix,
     lookup_user,
     sampled_global_graph,
-    toy_similar_users,
 )
 
 st.set_page_config(
@@ -337,37 +336,20 @@ if analyze_btn and user_query.strip():
                 f"Recommended Collaborators (top {k_value})</p>",
                 unsafe_allow_html=True,
             )
-            rec_feat, rec_deg = st.tabs(["Feature Similarity", "Degree Baseline"])
-            with rec_feat:
-                sim_df = feature_similar_users(user_row, node_df, get_features(), k_value)
-                if sim_df.empty:
-                    st.info("No candidates found.")
-                else:
-                    st.dataframe(
-                        sim_df,
-                        column_config={
-                            "similarity_score": st.column_config.ProgressColumn(
-                                "Similarity", min_value=0, max_value=1, format="%.3f"
-                            )
-                        },
-                        use_container_width=True,
-                        hide_index=True,
-                    )
-            with rec_deg:
-                toy_df = toy_similar_users(user_row, node_df, k_value)
-                if toy_df.empty:
-                    st.info("No candidates found.")
-                else:
-                    st.dataframe(
-                        toy_df,
-                        column_config={
-                            "similarity_score": st.column_config.ProgressColumn(
-                                "Similarity", min_value=0, max_value=1, format="%.3f"
-                            )
-                        },
-                        use_container_width=True,
-                        hide_index=True,
-                    )
+            sim_df = feature_similar_users(user_row, node_df, get_features(), k_value)
+            if sim_df.empty:
+                st.info("No candidates found.")
+            else:
+                st.dataframe(
+                    sim_df,
+                    column_config={
+                        "similarity_score": st.column_config.ProgressColumn(
+                            "Similarity", min_value=0, max_value=1, format="%.3f"
+                        )
+                    },
+                    use_container_width=True,
+                    hide_index=True,
+                )
 
         st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
         st.divider()
