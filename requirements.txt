@@ -1,12 +1,12 @@
-streamlit
-pandas
-numpy
-scipy
-scikit-learn
-networkx
-python-louvain
-pyvis
-matplotlib
-torch
-torch-geometric
-ipykernel
+# Python >= 3.10 required
+# (data_services.py uses `int | None` union syntax introduced in 3.10)
+ 
+streamlit==1.56.0
+pandas==2.2.3
+numpy==1.26.4          # pinned to 1.x — python-louvain (0.16, last updated 2022) is not tested against numpy 2.x
+matplotlib==3.10.8
+networkx==3.6.1
+scipy==1.17.1
+scikit-learn==1.8.0
+python-louvain==0.16   # imported as: from community import community_louvain
+pyvis==0.3.2
