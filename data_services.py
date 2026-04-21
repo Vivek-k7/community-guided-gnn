@@ -172,13 +172,25 @@ def _build_louvain(graph: nx.Graph, target: pd.DataFrame, n_nodes: int) -> None:
 
 
 def _build_label_propagation(graph: nx.Graph, target: pd.DataFrame, n_nodes: int) -> None:
-    communities = list(nx.algorithms.community.label_propagation_communities(graph))
-    part: dict[int, int] = {}
-    for cid, comm in enumerate(communities):
-        for node in comm:
-            part[node] = cid
-    labels = _remap(np.array([part.get(i, 0) for i in range(n_nodes)], dtype=int))
-    _save_artifacts("label_propagation", labels, graph, target)
+    best_labels, best_mod = None, -1.0
+    for seed in [0, 1, 2, 42, 99]:
+        communities = list(
+            nx.algorithms.community.asyn_lpa_communities(graph, seed=seed)
+        )
+        part: dict[int, int] = {}
+        for cid, comm in enumerate(communities):
+            for node in comm:
+                part[node] = cid
+        labels = _remap(np.array([part.get(i, 0) for i in range(n_nodes)], dtype=int))
+        try:
+            mod = community_louvain.modularity(
+                {i: int(labels[i]) for i in range(n_nodes)}, graph
+            )
+        except Exception:
+            mod = 0.0
+        if mod > best_mod:
+            best_mod, best_labels = mod, labels
+    _save_artifacts("label_propagation", best_labels, graph, target, best_mod)
 
 
 def _build_spectral(

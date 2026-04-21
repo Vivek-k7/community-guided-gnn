@@ -17,7 +17,6 @@ from data_services import (
     load_features_matrix,
     lookup_user,
     sampled_global_graph,
-    toy_similar_users,
 )
 
 st.set_page_config(
@@ -307,55 +306,28 @@ if active_query:
                 unsafe_allow_html=True,
             )
             k_val = st.slider("Top-K", 1, 20, 8, key="k_result", label_visibility="collapsed")
-            rec_feat, rec_deg = st.tabs(["Feature Similarity", "Degree Baseline"])
-
-            with rec_feat:
-                sim_df = feature_similar_users(user_row, node_df, get_features(), k_val)
-                if sim_df.empty:
-                    st.info("No candidates found in this community.")
-                else:
-                    sim_display = sim_df.copy()
-                    sim_display["name"] = sim_display["name"].apply(
-                        lambda n: f"https://github.com/{n}"
-                    )
-                    st.dataframe(
-                        sim_display,
-                        column_config={
-                            "name": st.column_config.LinkColumn(
-                                "Username",
-                                display_text=r"https://github\.com/(.+)",
-                            ),
-                            "similarity_score": st.column_config.ProgressColumn(
-                                "Similarity", min_value=0, max_value=1, format="%.3f"
-                            ),
-                        },
-                        use_container_width=True,
-                        hide_index=True,
-                    )
-
-            with rec_deg:
-                toy_df = toy_similar_users(user_row, node_df, k_val)
-                if toy_df.empty:
-                    st.info("No candidates found in this community.")
-                else:
-                    toy_display = toy_df.copy()
-                    toy_display["name"] = toy_display["name"].apply(
-                        lambda n: f"https://github.com/{n}"
-                    )
-                    st.dataframe(
-                        toy_display,
-                        column_config={
-                            "name": st.column_config.LinkColumn(
-                                "Username",
-                                display_text=r"https://github\.com/(.+)",
-                            ),
-                            "similarity_score": st.column_config.ProgressColumn(
-                                "Similarity", min_value=0, max_value=1, format="%.3f"
-                            ),
-                        },
-                        use_container_width=True,
-                        hide_index=True,
-                    )
+            sim_df = feature_similar_users(user_row, node_df, get_features(), k_val)
+            if sim_df.empty:
+                st.info("No candidates found in this community.")
+            else:
+                sim_display = sim_df.copy()
+                sim_display["name"] = sim_display["name"].apply(
+                    lambda n: f"https://github.com/{n}"
+                )
+                st.dataframe(
+                    sim_display,
+                    column_config={
+                        "name": st.column_config.LinkColumn(
+                            "Username",
+                            display_text=r"https://github\.com/(.+)",
+                        ),
+                        "similarity_score": st.column_config.ProgressColumn(
+                            "Similarity", min_value=0, max_value=1, format="%.3f"
+                        ),
+                    },
+                    use_container_width=True,
+                    hide_index=True,
+                )
 
         with right_col:
             st.markdown(
